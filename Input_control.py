@@ -77,13 +77,13 @@ def runner():
     print(headers)
     print(sequences)
 
-    if len(sequences) or len(headers) != 2:
+    if len(sequences) != 2 or len(headers) != 2:
         usage("The file contains more than two headers and/or sequences")
     
-    if sequence_type(sequences) != sequence_type(sequences):
+    if sequence_type(sequences[0]) != sequence_type(sequences[1]):
         usage("The two sequences are not the same type")
 
-    print(sequence_type(sequences))
+    print(sequence_type(sequences[0]))
     return None
 
 runner()
