@@ -18,20 +18,18 @@ def check_command_line(argv):
     """Tjek at der kun er 1 argument og at det er en FASTA-fil."""
 
     #Cheking input length
-    if len(argv) != 2:
-        raise UsageError("Der skal gives præcis én input-fil.")
 
     filename = argv[1]
     lower_name = filename.lower()
 
-    if not lower_name.endswith(ALLOWED_FASTA_SUFFIXES):
-        raise UsageError("Input-filen skal være en FASTA-fil (.fasta, .fa, .fna, .fsa, .fas).")
+    #if not lower_name.endswith(ALLOWED_FASTA_SUFFIXES):
+       #raise UsageError("Input-filen skal være en FASTA-fil (.fasta, .fa, .fna, .fsa, .fas).")
 
     try:
         with open(filename, "r"):
             pass
     except OSError:
-        raise UsageError("The file can't be read" + filename)
+        raise usage("The file can't be read" + filename)
 
     return filename
 
@@ -71,23 +69,26 @@ def sequence_type(sequence:str):
                 usage(f"Invalid character '{char}' at position {i}")
         usage("The sequence provided is not DNA, RNA or amino acid.")
 
+def score(a, b, Matrix=None, match=1, mismatch=-1):
+    if Matrix:
+        return Matrix[a][b]
+    return match if a == b else mismatch
 
-def nw_score(seq1, seq2):
-    gap_penalty = -1
-    match_score = 1
-    mismatch_penalty = -1
 
-    prev = [j*gap_penalty for j in range(len(seq2)+1)]
+def nw_score(seq1, seq2, gap_penalty=-1, Matrix=None):
+    prev = [j * gap_penalty for j in range(len(seq2)+1)]
 
-    for i in range(1,len(seq1)+1):
-        curr = [i*gap_penalty] + [0]*len(seq2)
+    for i in range(1, len(seq1)+1):
+        curr = [i * gap_penalty] + [0]*len(seq2)
 
-        for j in range(1,len(seq2)+1):
-            match = prev[j-1] + (match_score if seq1[i-1]==seq2[j-1] else mismatch_penalty)
+        for j in range(1, len(seq2)+1):
+            s = score(seq1[i-1], seq2[j-1], Matrix)
+
+            match = prev[j-1] + s
             delete = prev[j] + gap_penalty
             insert = curr[j-1] + gap_penalty
 
-            curr[j] = max(match,delete,insert)
+            curr[j] = max(match, delete, insert)
 
         prev = curr
 
@@ -115,8 +116,8 @@ def hirschberg(seq1, seq2):
 
     return left1 + right1, left2 + right2
 
-def needleman_wunsch(seq1, seq2):
-    match, mismatch, gap = 1, -1, -1
+def needleman_wunsch(seq1, seq2, Matrix=None):
+    gap = -1
     n, m = len(seq1), len(seq2)
 
     dp = [[0]*(m+1) for _ in range(n+1)]
@@ -128,18 +129,19 @@ def needleman_wunsch(seq1, seq2):
 
     for i in range(1, n+1):
         for j in range(1, m+1):
-            match_score = dp[i-1][j-1] + (match if seq1[i-1] == seq2[j-1] else mismatch)
+            s = score(seq1[i-1], seq2[j-1], Matrix)
+
+            match_score = dp[i-1][j-1] + s
             delete = dp[i-1][j] + gap
             insert = dp[i][j-1] + gap
+
             dp[i][j] = max(match_score, delete, insert)
 
     i, j = n, m
     a1, a2 = "", ""
 
     while i > 0 or j > 0:
-        if i > 0 and j > 0 and dp[i][j] == dp[i-1][j-1] + (
-            match if seq1[i-1] == seq2[j-1] else mismatch
-        ):
+        if i > 0 and j > 0 and dp[i][j] == dp[i-1][j-1] + score(seq1[i-1], seq2[j-1], Matrix):
             a1 += seq1[i-1]
             a2 += seq2[j-1]
             i -= 1
@@ -155,14 +157,29 @@ def needleman_wunsch(seq1, seq2):
 
     return a1[::-1], a2[::-1]
 
+def read_matrix(filename):
+    with open(filename) as f:
+        lines = [line.strip().split() for line in f if line.strip()]
 
-def global_alignment(seq1, seq2):
+    headers = lines[0]
+    Matrix = {}
+
+    for row in lines[1:]:
+        aa = row[0]
+        Matrix[aa] = {headers[i]: int(row[i+1]) for i in range(len(headers))}
+
+    return Matrix
+
+def global_alignment(seq1, seq2,Matrix = None):
+    
     align1, align2 = hirschberg(seq1, seq2)
-    score = sum(
-        1 if a == b else -1 if a != "-" and b != "-" else -1
-        for a, b in zip(align1, align2)
-    )
-    return score, align1, align2
+
+    total_score = sum(
+        score(a, b, Matrix)  
+        if a != "-" and b != "-" else -1
+        for a, b in zip(align1, align2))
+
+    return total_score, align1, align2
 
 def alignment_printer(aligned):
     print(aligned[0])
@@ -181,25 +198,31 @@ def alignment_printer(aligned):
     return None
 
 def runner():
+    if len(sys.argv) < 2:
+        usage("Missing input FASTA file")
+
     filename = check_command_line(sys.argv)
+
+    matrix = None
+
+    if len(sys.argv) > 2:
+        matrix = read_matrix(sys.argv[2])  # fx blosum62.txt
+
     headers, sequences = fastaread(filename)
-    print(headers)
-    print(sequences)
 
     if len(sequences) != 2 or len(headers) != 2:
         usage("The file contains more than two headers and/or sequences")
-    
+
     if sequence_type(sequences[0]) != sequence_type(sequences[1]):
         usage("The two sequences are not the same type")
-    
-    score, align1, align2 = global_alignment(sequences[0], sequences[1])
+
+    score, align1, align2 = global_alignment(
+        sequences[0],
+        sequences[1],
+        matrix
+    )
+
     alignment_printer([align1, align2])
     print(score)
-
-
-    print(sequence_type(sequences[0]))
-
-
-    return None
 
 runner()
