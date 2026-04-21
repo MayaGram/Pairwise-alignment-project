@@ -11,44 +11,105 @@ ALLOWED_FASTA_SUFFIXES = (".fasta", ".fa", ".fna", ".fsa", ".fas")
 def usage(error_message):
     """Printing the error in the code and ending the script"""
     print("Fejl:", error_message, file=sys.stderr)
-    print("Input should looke like: python3 align.py <fastafil>", file=sys.stderr)
+    print("Input should looke like: python3 align.py <fastafil> <type> <customize yes or no>", file=sys.stderr)
     sys.exit(1)
 
 def check_command_line(argv):
-    """Tjek at der kun er 1 argument og at det er en FASTA-fil."""
+    """Check that the command line input is correct."""
 
-    #Cheking input length
+    # Checking input length
+    if len(argv) != 4:
+        usage("Input length is not correct")
 
     filename = argv[1]
     lower_name = filename.lower()
 
-    #if not lower_name.endswith(ALLOWED_FASTA_SUFFIXES):
-       #raise UsageError("Input-filen skal være en FASTA-fil (.fasta, .fa, .fna, .fsa, .fas).")
+    if not lower_name.endswith(ALLOWED_FASTA_SUFFIXES):
+        usage("Input file must be a FASTA file (.fasta, .fa, .fna, .fsa, .fas).")
 
-    try:
-        with open(filename, "r"):
-            pass
-    except OSError:
-        raise usage("The file can't be read" + filename)
+    # Getting the sequence type
+    type_seq = argv[2].upper()
 
-    return filename
+    if type_seq not in ("DNA", "RNA", "AA"):
+        usage("The sequence type is not correct. It should be DNA, RNA, or AA.")
+
+    # Customize section
+    customs = argv[3].lower()
+
+    if customs not in ("no", "yes"):
+        usage("Input must be either 'no' or 'yes' for custom options.")
+
+    if customs == "yes":
+        settings = customize(type_seq)
+    else:
+        settings = None
+
+    return filename, type_seq, customs, settings
+    
+
+
+def customize(type_seq) -> dict:
+    """Only activated if user asks for customisation and returns a dictionary with set customs"""
+    type_seq = type_seq.upper()
+
+    if type_seq in ("RNA", "DNA"):
+        print("You must now provide the input for the 4 values. They must be integers.")
+        try:
+            match = int(input("match: "))
+            mismatch = int(input("mismatch: "))
+            gap = int(input("gap: "))
+            gap_penalty = int(input("gap penalty: "))
+        except ValueError:
+            usage("The values provided must be integers.")
+
+        return {
+            "match": match,
+            "mismatch": mismatch,
+            "gap": gap,
+            "gap_penalty": gap_penalty,
+            "filename_matrix": None}
+
+    elif type_seq == "AA":
+        print("You must now provide the 2 integer values and a filename for a substitution matrix.")
+        try:
+            gap = int(input("gap: "))
+            gap_penalty = int(input("gap penalty: "))
+            filename_matrix = input("Input filename for substitution matrix: ").strip()
+        except ValueError:
+            usage("Gap and gap penalty must be integers.")
+
+        if filename_matrix == "":
+            usage("You must provide a filename for the substitution matrix.")
+
+        return {
+            "match": None,
+            "mismatch": None,
+            "gap": gap,
+            "gap_penalty": gap_penalty,
+            "filename_matrix": filename_matrix}
+
+    else:
+        usage("Sequence type must be DNA, RNA, or AA.")
 
 def fastaread(filename):
     """Reads a fasta file by given filename and returns a list with headers and a list with sequences"""
     headers = []
     sequences = []
     # Open the file
-    with open(filename, "r") as infile:
-        for line in infile:
-            if line.startswith('>'):
-                headers.append(line.rstrip())
-                sequences.append('')
-            elif len(sequences) == 0:
-                continue        # ignore leading non header in file
-            else:
-                sequences[-1] += ''.join(line.split())
-            if len(headers) > 2:
-                usage("The amount of sequences are greater than 2")
+    try: 
+        with open(filename, "r") as infile:
+            for line in infile:
+                if line.startswith('>'):
+                    headers.append(line.rstrip())
+                    sequences.append('')
+                elif len(sequences) == 0:
+                    continue        # ignore leading non header in file
+                else:
+                    sequences[-1] += ''.join(line.split())
+                if len(headers) > 2:
+                    usage("The amount of sequences are greater than 2")
+    except OSError:
+        usage("the file proviede can't be opend")
 
     return headers, sequences
 
@@ -201,12 +262,12 @@ def runner():
     if len(sys.argv) < 2:
         usage("Missing input FASTA file")
 
-    filename = check_command_line(sys.argv)
+    filename, type_seq, customs, settings = check_command_line(sys.argv)
 
     matrix = None
 
-    if len(sys.argv) > 2:
-        matrix = read_matrix(sys.argv[2])  # fx blosum62.txt
+    #if len(sys.argv) > 2:
+        #matrix = read_matrix(sys.argv[2])  # fx blosum62.txt
 
     headers, sequences = fastaread(filename)
 
