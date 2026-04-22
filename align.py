@@ -239,19 +239,30 @@ def global_alignment(seq1, seq2,Matrix = None):
     return total_score, align1, align2
 
 def alignment_printer(aligned):
-    print(aligned[0])
+    seq1 = aligned[0]
+    seq2 = aligned[1]
+    block_size = 60
 
-    Connecting_string = ""
-    for i, char in enumerate(aligned[0]):
-        if char == aligned[1][i]:
-            Connecting_string += "|"
-        elif char == "-" or aligned[1][i] == "-":
-            Connecting_string += " "
-        else:
-            Connecting_string += ":"
-    
-    print(Connecting_string)
-    print(aligned[1])
+    for start in range(0, len(seq1), block_size):
+        end = start + block_size
+        part1 = seq1[start:end]
+        part2 = seq2[start:end]
+
+        print(part1)
+
+        Connecting_string = ""
+        for i, char in enumerate(part1):
+            if char == part2[i]:
+                Connecting_string += "|"
+            elif char == "-" or part2[i] == "-":
+                Connecting_string += " "
+            else:
+                Connecting_string += ":"
+
+        print(Connecting_string)
+        print(part2)
+        print()
+
     return None
 
 def runner():
