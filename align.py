@@ -7,31 +7,88 @@ RNA_CHARS = set("ANCGURYSWKMBDHV")
 PROTEIN_CHARS = set("ACDEFGHIKLMNPQRSTVWYBXZJUO*")
 ALLOWED_FASTA_SUFFIXES = (".fasta", ".fa", ".fna", ".fsa", ".fas")
 
-
 def usage(error_message):
     """Printing the error in the code and ending the script"""
     print("Fejl:", error_message, file=sys.stderr)
-    print("Input should looke like: python3 align.py <fastafil>", file=sys.stderr)
+    print("Input should looke like: python3 align.py <fastafil> <type> <customize yes or no>", file=sys.stderr)
     sys.exit(1)
 
 def check_command_line(argv):
-    """Tjek at der kun er 1 argument og at det er en FASTA-fil."""
+    """Check that the command line input is correct."""
 
-    #Cheking input length
+    # Checking input length
+    if len(argv) != 4:
+        usage("Input length is not correct")
 
     filename = argv[1]
     lower_name = filename.lower()
 
-    #if not lower_name.endswith(ALLOWED_FASTA_SUFFIXES):
-       #raise UsageError("Input-filen skal være en FASTA-fil (.fasta, .fa, .fna, .fsa, .fas).")
+    if not lower_name.endswith(ALLOWED_FASTA_SUFFIXES):
+        usage("Input file must be a FASTA file (.fasta, .fa, .fna, .fsa, .fas).")
 
-    try:
-        with open(filename, "r"):
-            pass
-    except OSError:
-        raise usage("The file can't be read" + filename)
+    # Getting the sequence type
+    type_seq = argv[2].upper()
 
-    return filename
+    if type_seq not in ("DNA", "RNA", "AA"):
+        usage("The sequence type is not correct. It should be DNA, RNA, or AA.")
+
+    # Customize section
+    customs = argv[3].lower()
+
+    if customs not in ("no", "yes"):
+        usage("Input must be either 'no' or 'yes' for custom options.")
+
+    if customs == "yes":
+        settings = customize(type_seq)
+    else:
+        settings = None
+
+    return filename, type_seq, customs, settings
+
+def customize(type_seq):
+    type_seq = type_seq.upper()
+
+    if type_seq in ("RNA", "DNA"):
+        print("You must now provide the input for the 4 values. They must be integers.")
+        try:
+            match = int(input("match: "))
+            mismatch = int(input("mismatch: "))
+            gap = int(input("gap: "))
+            gap_penalty = int(input("gap penalty: "))
+        except ValueError:
+            usage("The values provided must be integers.")
+
+        return {
+            "match": match,
+            "mismatch": mismatch,
+            "gap": gap,
+            "gap_penalty": gap_penalty,
+            "filename_matrix": None
+        }
+
+    elif type_seq == "AA":
+        print("You must now provide the 2 integer values and a filename for a substitution matrix.")
+        try:
+            gap = int(input("gap: "))
+            gap_penalty = int(input("gap penalty: "))
+            filename_matrix = input("Input filename for substitution matrix: ").strip()
+        except ValueError:
+            usage("Gap and gap penalty must be integers.")
+
+        if filename_matrix == "":
+            usage("You must provide a filename for the substitution matrix.")
+
+        return {
+            "match": None,
+            "mismatch": None,
+            "gap": gap,
+            "gap_penalty": gap_penalty,
+            "filename_matrix": filename_matrix
+        }
+
+    else:
+        usage("Sequence type must be DNA, RNA, or AA.")
+
 
 def fastaread(filename):
     """Reads a fasta file by given filename and returns a list with headers and a list with sequences"""
@@ -94,25 +151,25 @@ def nw_score(seq1, seq2, gap_penalty=-1, Matrix=None):
 
     return prev
 
-def hirschberg(seq1, seq2):
+def hirschberg(seq1, seq2, Matrix=None):
     if len(seq1) == 0:
         return "-"*len(seq2), seq2
     if len(seq2) == 0:
         return seq1, "-"*len(seq1)
 
     if len(seq1) == 1 or len(seq2) == 1:
-        return needleman_wunsch(seq1, seq2)
+        return needleman_wunsch(seq1, seq2, Matrix)
 
     mid = len(seq1)//2
 
-    scoreL = nw_score(seq1[:mid], seq2)
-    scoreR = nw_score(seq1[mid:][::-1], seq2[::-1])
+    scoreL = nw_score(seq1[:mid], seq2, Matrix=Matrix)
+    scoreR = nw_score(seq1[mid:][::-1], seq2[::-1], Matrix=Matrix)
 
     m = len(seq2)
     split = max(range(m+1), key=lambda j: scoreL[j] + scoreR[m-j])
 
-    left1, left2 = hirschberg(seq1[:mid], seq2[:split])
-    right1, right2 = hirschberg(seq1[mid:], seq2[split:])
+    left1, left2 = hirschberg(seq1[:mid], seq2[:split], Matrix)
+    right1, right2 = hirschberg(seq1[mid:], seq2[split:], Matrix)
 
     return left1 + right1, left2 + right2
 
@@ -172,10 +229,10 @@ def read_matrix(filename):
 
 def global_alignment(seq1, seq2,Matrix = None):
     
-    align1, align2 = hirschberg(seq1, seq2)
+    align1, align2 = hirschberg(seq1, seq2, Matrix)
 
     total_score = sum(
-        score(a, b, Matrix)  
+        score(a, b, Matrix) 
         if a != "-" and b != "-" else -1
         for a, b in zip(align1, align2))
 
@@ -198,15 +255,26 @@ def alignment_printer(aligned):
     return None
 
 def runner():
-    if len(sys.argv) < 2:
-        usage("Missing input FASTA file")
+    if len(sys.argv) != 4:
+        usage("Wrong input length")
 
-    filename = check_command_line(sys.argv)
-
+    filename, type_seq, customs, settings = check_command_line(sys.argv)
     matrix = None
 
-    if len(sys.argv) > 2:
-        matrix = read_matrix(sys.argv[2]) 
+    if customs == "yes":
+
+        if type_seq == "AA":
+            gap_penalty = settings["gap_penalty"]
+            file_name_matrix = settings["filename_matrix"]
+            matrix = read_matrix(file_name_matrix)
+
+        elif type_seq in ("RNA", "DNA"):
+            match = settings["match"]
+            mismatch = settings["mismatch"]
+            gap_penalty = settings["gap_penalty"]
+        
+    if customs == "no":
+        matrix = read_matrix("blosum62.txt")
 
     headers, sequences = fastaread(filename)
 
@@ -216,13 +284,13 @@ def runner():
     if sequence_type(sequences[0]) != sequence_type(sequences[1]):
         usage("The two sequences are not the same type")
 
-    score, align1, align2 = global_alignment(
+    total_score, align1, align2 = global_alignment(
         sequences[0],
         sequences[1],
         matrix
     )
 
     alignment_printer([align1, align2])
-    print(score)
+    print(total_score)
 
 runner()
