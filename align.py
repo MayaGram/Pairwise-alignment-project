@@ -248,7 +248,7 @@ def alignment_printer(aligned):
         part1 = seq1[start:end]
         part2 = seq2[start:end]
 
-        print(part1)
+        print(f"{part1}\t{start}-{end}")
 
         Connecting_string = ""
         for i, char in enumerate(part1):
@@ -259,8 +259,8 @@ def alignment_printer(aligned):
             else:
                 Connecting_string += ":"
 
-        print(Connecting_string)
-        print(part2)
+        print(Connecting_string + "\t")
+        print(part2 + "\t")
         print()
 
     return None
