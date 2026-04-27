@@ -217,6 +217,7 @@ def needleman_wunsch(seq1, seq2, Matrix=None):
 def read_matrix(filename):
     with open(filename) as f:
         line = f.readline()
+        f.seek(0)
         if '\t' in line:
            f.seek()
            lines = [line1.strip().split('\t') for line1 in f if line1.strip()] 
