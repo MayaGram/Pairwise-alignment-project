@@ -218,9 +218,9 @@ def read_matrix(filename):
     with open(filename) as f:
         line = f.readline
         if '\t' in line:
-           lines = [line.strip().split('\t') for line in f if line.strip()] 
+           lines = [line1.strip().split('\t') for line1 in f if line1.strip()] 
         elif ' ' in line:
-            lines = [line.strip().split() for line in f if line.strip()]
+            lines = [line1.strip().split() for line1 in f if line1.strip()]
         else:
             usage('can only take matrixes splittet by " " or tap')
 
