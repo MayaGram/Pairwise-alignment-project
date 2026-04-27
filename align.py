@@ -49,27 +49,42 @@ def customize(type_seq):
     type_seq = type_seq.upper()
 
     if type_seq in ("RNA", "DNA"):
-        print("You must now provide the input for the 4 values. They must be integers.")
-        try:
-            match = int(input("match: "))
-            mismatch = int(input("mismatch: "))
-            gap = int(input("gap: "))
-            gap_penalty = int(input("gap penalty: "))
-        except ValueError:
-            usage("The values provided must be integers.")
+
+        disition = input("Do you want to submit a substituion matrix or values, type yes for matrix and no for values: ")
+
+        if disition.upper() == "NO":
+            print("You must now provide the input for the 3 values. They must be integers.")
+            try:                    
+                match = int(input("match: "))
+                mismatch = int(input("mismatch: "))
+                gap_penalty = int(input("gap penalty: "))
+                filename_matrix = None
+            except ValueError:
+                usage("The values provided must be integers.")
+            
+        elif disition.upper() == "YES":
+            try:
+                print("You must now provide the input for the 2 values. gap_penalty must be int and filename_matrix must be a substitutionmatrix file")
+                match = None                    
+                mismatch = None
+                gap_penalty = int(input("gap penalty: "))
+                filename_matrix = input("substituion matrix: ")
+            except ValueError:
+                usage("The values provided must be integers.")
+
+        else:
+            usage("You must provide yes or no to the desision")
 
         return {
             "match": match,
             "mismatch": mismatch,
-            "gap": gap,
             "gap_penalty": gap_penalty,
-            "filename_matrix": None
+            "filename_matrix": filename_matrix
         }
 
     elif type_seq == "AA":
-        print("You must now provide the 2 integer values and a filename for a substitution matrix.")
+        print("You must now provide the 1 integer value and a filename for a substitution matrix.")
         try:
-            gap = int(input("gap: "))
             gap_penalty = int(input("gap penalty: "))
             filename_matrix = input("Input filename for substitution matrix: ").strip()
         except ValueError:
@@ -81,7 +96,6 @@ def customize(type_seq):
         return {
             "match": None,
             "mismatch": None,
-            "gap": gap,
             "gap_penalty": gap_penalty,
             "filename_matrix": filename_matrix
         }
@@ -132,49 +146,49 @@ def score(a, b, Matrix=None, match=1, mismatch=-1):
     return match if a == b else mismatch
 
 
-def nw_score(seq1, seq2, gap_penalty=-1, Matrix=None):
+def nw_score(seq1, seq2, gap_penalty=-1, Matrix=None, match=1, mismatch=-1):
     prev = [j * gap_penalty for j in range(len(seq2)+1)]
 
     for i in range(1, len(seq1)+1):
         curr = [i * gap_penalty] + [0]*len(seq2)
 
         for j in range(1, len(seq2)+1):
-            s = score(seq1[i-1], seq2[j-1], Matrix)
+            s = score(seq1[i-1], seq2[j-1], Matrix, match, mismatch)
 
-            match = prev[j-1] + s
+            match_score = prev[j-1] + s
             delete = prev[j] + gap_penalty
             insert = curr[j-1] + gap_penalty
 
-            curr[j] = max(match, delete, insert)
+            curr[j] = max(match_score, delete, insert)
 
         prev = curr
 
     return prev
 
-def hirschberg(seq1, seq2, Matrix=None):
+def hirschberg(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=-1):
     if len(seq1) == 0:
         return "-"*len(seq2), seq2
     if len(seq2) == 0:
         return seq1, "-"*len(seq1)
 
     if len(seq1) == 1 or len(seq2) == 1:
-        return needleman_wunsch(seq1, seq2, Matrix)
+        return needleman_wunsch(seq1, seq2, Matrix, gap_penalty, match, mismatch)
 
     mid = len(seq1)//2
 
-    scoreL = nw_score(seq1[:mid], seq2, Matrix=Matrix)
-    scoreR = nw_score(seq1[mid:][::-1], seq2[::-1], Matrix=Matrix)
+    scoreL = nw_score(seq1[:mid], seq2, gap_penalty=gap_penalty, Matrix=Matrix, match=match, mismatch=mismatch)
+    scoreR = nw_score(seq1[mid:][::-1], seq2[::-1], gap_penalty=gap_penalty, Matrix=Matrix, match=match, mismatch=mismatch)
 
     m = len(seq2)
     split = max(range(m+1), key=lambda j: scoreL[j] + scoreR[m-j])
 
-    left1, left2 = hirschberg(seq1[:mid], seq2[:split], Matrix)
-    right1, right2 = hirschberg(seq1[mid:], seq2[split:], Matrix)
+    left1, left2 = hirschberg(seq1[:mid], seq2[:split], Matrix, gap_penalty, match, mismatch)
+    right1, right2 = hirschberg(seq1[mid:], seq2[split:], Matrix, gap_penalty, match, mismatch)
 
     return left1 + right1, left2 + right2
 
-def needleman_wunsch(seq1, seq2, Matrix=None):
-    gap = -1
+def needleman_wunsch(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=-1):
+    gap = gap_penalty
     n, m = len(seq1), len(seq2)
 
     dp = [[0]*(m+1) for _ in range(n+1)]
@@ -186,7 +200,7 @@ def needleman_wunsch(seq1, seq2, Matrix=None):
 
     for i in range(1, n+1):
         for j in range(1, m+1):
-            s = score(seq1[i-1], seq2[j-1], Matrix)
+            s = score(seq1[i-1], seq2[j-1], Matrix, match, mismatch)
 
             match_score = dp[i-1][j-1] + s
             delete = dp[i-1][j] + gap
@@ -198,7 +212,7 @@ def needleman_wunsch(seq1, seq2, Matrix=None):
     a1, a2 = "", ""
 
     while i > 0 or j > 0:
-        if i > 0 and j > 0 and dp[i][j] == dp[i-1][j-1] + score(seq1[i-1], seq2[j-1], Matrix):
+        if i > 0 and j > 0 and dp[i][j] == dp[i-1][j-1] + score(seq1[i-1], seq2[j-1], Matrix, match, mismatch):
             a1 += seq1[i-1]
             a2 += seq2[j-1]
             i -= 1
@@ -235,13 +249,12 @@ def read_matrix(filename):
 
     return Matrix
 
-def global_alignment(seq1, seq2,Matrix = None):
-    
-    align1, align2 = hirschberg(seq1, seq2, Matrix)
+def global_alignment(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=-1):
+    align1, align2 = hirschberg(seq1, seq2, Matrix, gap_penalty, match, mismatch)
 
     total_score = sum(
-        score(a, b, Matrix) 
-        if a != "-" and b != "-" else -1
+        score(a, b, Matrix, match, mismatch)
+        if a != "-" and b != "-" else gap_penalty
         for a, b in zip(align1, align2))
 
     return total_score, align1, align2
@@ -279,6 +292,9 @@ def runner():
 
     filename, type_seq, customs, settings = check_command_line(sys.argv)
     matrix = None
+    gap_penalty = -1
+    match = 1
+    mismatch = -1
 
     if customs == "yes":
 
@@ -291,8 +307,11 @@ def runner():
             match = settings["match"]
             mismatch = settings["mismatch"]
             gap_penalty = settings["gap_penalty"]
+            file_name_matrix = settings["filename_matrix"]
+            if file_name_matrix is not None:
+                matrix = read_matrix(file_name_matrix)
         
-    if customs == "no":
+    if customs == "no" and type_seq == "AA":
         matrix = read_matrix("blosum62.txt")
 
     headers, sequences = fastaread(filename)
@@ -306,7 +325,10 @@ def runner():
     total_score, align1, align2 = global_alignment(
         sequences[0],
         sequences[1],
-        matrix
+        matrix,
+        gap_penalty,
+        match,
+        mismatch,
     )
 
     alignment_printer([align1, align2])
