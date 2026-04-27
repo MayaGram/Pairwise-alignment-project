@@ -331,7 +331,16 @@ def runner():
         mismatch,
     )
 
+    print("=" * 60)
+    print(f"Result for pairwise alignment of {filename}")
+    print(f"The type of sequences alignt was {type_seq}")
+    print("=" * 60)
+    print(f"Sequence 1:{headers[0]}")
+    print("Was aligned with")
+    print(f"Sequence 2:{headers[1]}")
+    print("=" * 60)
+    print(f"The totalt alignment score was: {total_score}")
+    print("Alignment:")
     alignment_printer([align1, align2])
-    print(total_score)
 
 runner()
