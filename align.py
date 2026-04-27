@@ -216,7 +216,14 @@ def needleman_wunsch(seq1, seq2, Matrix=None):
 
 def read_matrix(filename):
     with open(filename) as f:
-        lines = [line.strip().split() for line in f if line.strip()]
+        line = f.readline
+        if '\t' in line:
+           lines = [line.strip().split('\t') for line in f if line.strip()] 
+        elif ' ' in line:
+            lines = [line.strip().split() for line in f if line.strip()]
+        else:
+            usage('can only take matrixes splittet by " " or tap')
+
 
     headers = lines[0]
     Matrix = {}
