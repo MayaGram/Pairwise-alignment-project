@@ -343,4 +343,5 @@ def runner():
     print("Alignment:")
     alignment_printer([align1, align2])
 
-runner()
+if __name__ == "__main__":
+    runner()
