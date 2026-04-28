@@ -73,6 +73,25 @@ def fastaread_test():
     with pytest.raises(SystemExit):
         fastaread('test_filer/3filer.fasta')
 
+from align import check_command_line
+
+def test_check_command_line_valid():
+    args=['python3','test_files/DNA.Fasta', 'DNA', 'no']
+
+    filename, type_seq, customs, settings = check_command_line(args)
+
+    assert filename == 'test_files/DNA.Fasta'
+    assert type_seq == 'DNA'
+    assert customs == 'no'
+    assert settings == None
+
+def test_check_command_line_invalid():
+    args=['python3','test_files/DNA.Fasta', 'no']
+
+    with pytest.raises(SystemExit):
+        check_command_line(args)
+
+
 
 
 
