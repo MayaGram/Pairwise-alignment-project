@@ -244,8 +244,15 @@ def read_matrix(filename):
     Matrix = {}
 
     for row in lines[1:]:
-        aa = row[0]
-        Matrix[aa] = {headers[i]: int(row[i+1]) for i in range(len(headers))}
+        char = row[0]
+        if sys.argv[2].upper() == 'AA' and char not in PROTEIN_CHARS:
+            usage(f"Invalid character '{char}' in substitution matrix for amino acids.")
+        elif sys.argv[2].upper() == 'DNA' and char not in DNA_CHARS:
+            usage(f"Invalid character '{char}' in substitution matrix for DNA.")
+        elif sys.argv[2].upper() == 'RNA' and char not in RNA_CHARS:
+            usage(f"Invalid character '{char}' in substitution matrix for RNA.")
+
+        Matrix[char] = {headers[i]: int(row[i+1]) for i in range(len(headers))}
 
     return Matrix
 
