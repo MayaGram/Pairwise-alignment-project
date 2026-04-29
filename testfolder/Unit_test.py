@@ -96,7 +96,6 @@ from align import read_matrix
 
 def test_read_matrix_valid(tmp_path, monkeypatch):
     matrix_file = tmp_path / "dna_matrix.txt"
-    matrix_file = tmp_path / "dna_matrix.txt"
     matrix_file.write_text(
         """A C G T
 A 2 -1 -1 -1
