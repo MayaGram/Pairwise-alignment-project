@@ -1,6 +1,7 @@
 
 
 import pytest
+import sys
 from align import sequence_type
 
 def test_sequence_type_dna():
@@ -90,6 +91,35 @@ def test_check_command_line_invalid():
 
     with pytest.raises(SystemExit):
         check_command_line(args)
+
+from align import read_matrix
+
+def test_read_matrix_valid(tmp_path, monkeypatch):
+    matrix_file = tmp_path / "dna_matrix.txt"
+    matrix_file = tmp_path / "dna_matrix.txt"
+    matrix_file.write_text(
+        """A C G T
+A 2 -1 -1 -1
+C -1 2 -1 -1
+G -1 -1 2 -1
+T -1 -1 -1 2
+"""
+    )
+
+    monkeypatch.setattr(sys, "argv", ["align.py", "DNA.fasta", "DNA", "yes"])
+
+
+
+    result = read_matrix(str(matrix_file))
+
+    expected = {
+        "A": {"A": 2, "C": -1, "G": -1, "T": -1},
+        "C": {"A": -1, "C": 2, "G": -1, "T": -1},
+        "G": {"A": -1, "C": -1, "G": 2, "T": -1},
+        "T": {"A": -1, "C": -1, "G": -1, "T": 2},
+    }
+
+    assert result == expected
 
 
 
