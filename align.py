@@ -229,15 +229,18 @@ def needleman_wunsch(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=
     return a1[::-1], a2[::-1]
 
 def read_matrix(filename):
-    with open(filename) as f:
-        line = f.readline()
-        f.seek(0)
-        if '\t' in line:
-           lines = [line1.strip().split('\t') for line1 in f if line1.strip()] 
-        elif ' ' in line:
-            lines = [line1.strip().split() for line1 in f if line1.strip()]
-        else:
-            usage('can only take matrixes splittet by " " or tap')
+    try:
+        with open(filename) as f:
+            line = f.readline()
+            f.seek(0)
+            if '\t' in line:
+                lines = [line1.strip().split('\t') for line1 in f if line1.strip()] 
+            elif ' ' in line:
+                lines = [line1.strip().split() for line1 in f if line1.strip()]
+            else:
+                usage('can only take matrixes splittet by " " or tap')
+    except FileNotFoundError:
+        usage(f"Substitution matrix file '{filename}' not found.")
 
 
     headers = lines[0]
