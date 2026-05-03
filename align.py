@@ -10,14 +10,14 @@ ALLOWED_FASTA_SUFFIXES = (".fasta", ".fa", ".fna", ".fsa", ".fas")
 def usage(error_message):
     """Printing the error in the code and ending the script"""
     print("Fejl:", error_message, file=sys.stderr)
-    print("Input should looke like: python3 align.py <fastafil> <type> <customize yes or no>", file=sys.stderr)
+    print("Input should looke like: python3 align.py <fastafil> <type> <local/global> <customize yes or no>", file=sys.stderr)
     sys.exit(1)
 
 def check_command_line(argv):
     """Check that the command line input is correct."""
 
     # Checking input length
-    if len(argv) != 4:
+    if len(argv) != 5:
         usage("Input length is not correct")
 
     filename = argv[1]
@@ -31,9 +31,14 @@ def check_command_line(argv):
 
     if type_seq not in ("DNA", "RNA", "AA"):
         usage("The sequence type is not correct. It should be DNA, RNA, or AA.")
+    
+    #Type of alignment local or global
+    alignment_type = argv[3].lower()
+    if alignment_type not in ("global", "local"):
+        usage("You must input global or local for alignment type")
 
     # Customize section
-    customs = argv[3].lower()
+    customs = argv[4].lower()
 
     if customs not in ("no", "yes"):
         usage("Input must be either 'no' or 'yes' for custom options.")
@@ -43,7 +48,7 @@ def check_command_line(argv):
     else:
         settings = None
 
-    return filename, type_seq, customs, settings
+    return filename, type_seq, customs, settings, alignment_type
 
 def customize(type_seq):
     type_seq = type_seq.upper()
@@ -55,7 +60,9 @@ def customize(type_seq):
         if disition.upper() == "NO":
             print("You must now provide the input for the 3 values. They must be integers.")
             try:                    
-                match = int(input("match: "))
+                match = int(input("match (mus be >0): "))
+                if match <= 0:
+                    usage("match must be above 0")
                 mismatch = int(input("mismatch: "))
                 gap_penalty = int(input("gap penalty: "))
                 filename_matrix = None
@@ -287,6 +294,73 @@ def global_alignment(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=
 
     return total_score, align1, align2
 
+def smith_waterman(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=-1):
+    gap = gap_penalty
+    M, N = len(seq1), len(seq2)
+
+    #Here my alignment matrix is getting scores and path matrix is for keeping track of the scores
+    alignment_matrix = [[0] * (N + 1) for i in range(M + 1)]
+    path_matrix = [[0] * (N + 1) for i in range(M + 1)]
+
+    max_score = 0
+    max_position = (0, 0)
+
+    for i in range(1, M + 1):
+        for j in range(1, N + 1):
+
+            #Species keep track of the nukleotides in the position
+            species1 = seq1[i - 1]
+            species2 = seq2[j - 1]
+
+            #Defining the different ways to move in the matix
+            diag_score = alignment_matrix[i - 1][j - 1] + score(species1, species2, Matrix, match, mismatch)
+            down_score = alignment_matrix[i - 1][j] + gap
+            left_score = alignment_matrix[i][j - 1] + gap
+
+            #Kepping track of the max score it can't ever be negative
+            current_score = max(0, diag_score, down_score, left_score)
+            alignment_matrix[i][j] = current_score
+
+            if current_score == 0:
+                path_matrix[i][j] = -1
+            elif current_score == diag_score:
+                path_matrix[i][j] = 0
+            elif current_score == down_score:
+                path_matrix[i][j] = 1
+            else:
+                path_matrix[i][j] = 2
+
+            if current_score > max_score:
+                max_score = current_score
+                max_position = (i, j)
+
+    i, j = max_position
+    a1, a2 = "", ""
+
+    while i > 0 and j > 0 and path_matrix[i][j] != -1:
+        if path_matrix[i][j] == 0:
+            a1 += seq1[i - 1]
+            a2 += seq2[j - 1]
+            i -= 1
+            j -= 1
+
+        elif path_matrix[i][j] == 1:
+            a1 += seq1[i - 1]
+            a2 += "-"
+            i -= 1
+
+        else:
+            a1 += "-"
+            a2 += seq2[j - 1]
+            j -= 1
+
+    return max_score, a1[::-1], a2[::-1]
+
+def local_alignment(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=-1):
+    # Use Smith-Waterman to compute the best local alignment of seq1 and seq2
+    total_score, align1, align2 = smith_waterman(seq1, seq2, Matrix, gap_penalty, match, mismatch)
+    return total_score, align1, align2
+
 def alignment_printer(aligned):
     seq1 = aligned[0]
     seq2 = aligned[1]
@@ -315,10 +389,10 @@ def alignment_printer(aligned):
     return None
 
 def runner():
-    if len(sys.argv) != 4:
+    if len(sys.argv) != 5:
         usage("Wrong input length")
 
-    filename, type_seq, customs, settings = check_command_line(sys.argv)
+    filename, type_seq, customs, settings, alignment_type = check_command_line(sys.argv)
     matrix = None
     gap_penalty = -1
     match = 1
@@ -350,14 +424,24 @@ def runner():
     if sequence_type(sequences[0]) != sequence_type(sequences[1]):
         usage("The two sequences are not the same type")
 
-    total_score, align1, align2 = global_alignment(
-        sequences[0],
-        sequences[1],
-        matrix,
-        gap_penalty,
-        match,
-        mismatch,
-    )
+    if alignment_type == "global":
+        total_score, align1, align2 = global_alignment(
+            sequences[0],
+            sequences[1],
+            matrix,
+            gap_penalty,
+            match,
+            mismatch,
+        )
+    elif alignment_type == "local":
+        total_score, align1, align2 = local_alignment(
+            sequences[0],
+            sequences[1],
+            matrix,
+            gap_penalty,
+            match,
+            mismatch,
+        )
 
     print("=" * 60)
     print(f"Result for pairwise alignment of {filename}")
