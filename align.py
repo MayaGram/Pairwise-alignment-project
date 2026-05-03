@@ -147,57 +147,68 @@ def score(a, b, Matrix=None, match=1, mismatch=-1):
 
 
 def nw_score(seq1, seq2, gap_penalty=-1, Matrix=None, match=1, mismatch=-1):
-    prev = [j * gap_penalty for j in range(len(seq2)+1)]
+    prev = [j * gap_penalty for j in range(len(seq2)+1)] # Initialize the first row of the DP table
 
-    for i in range(1, len(seq1)+1):
-        curr = [i * gap_penalty] + [0]*len(seq2)
+    for i in range(1, len(seq1)+1): # Iterate through each character in seq1
+        curr = [i * gap_penalty] + [0]*len(seq2) # Initialize the current row of the DP table
 
-        for j in range(1, len(seq2)+1):
-            s = score(seq1[i-1], seq2[j-1], Matrix, match, mismatch)
+        for j in range(1, len(seq2)+1): # Iterate through each character in seq2
+            s = score(seq1[i-1], seq2[j-1], Matrix, match, mismatch) # getting score from substitution matrix
 
-            match_score = prev[j-1] + s
+            match_score = prev[j-1] + s 
             delete = prev[j] + gap_penalty
             insert = curr[j-1] + gap_penalty
 
-            curr[j] = max(match_score, delete, insert)
+            curr[j] = max(match_score, delete, insert) # Update the current cell with the maximum score
 
-        prev = curr
+        prev = curr # Move to the next row by setting curr to prev
 
     return prev
 
 def hirschberg(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=-1):
+
+    #base cases - if one of the sequences is empty, return the other sequence with gaps
     if len(seq1) == 0:
         return "-"*len(seq2), seq2
     if len(seq2) == 0:
         return seq1, "-"*len(seq1)
+    
+    #base case - if one of the sequences has length 1, use Needleman-Wunsch to align them
 
     if len(seq1) == 1 or len(seq2) == 1:
         return needleman_wunsch(seq1, seq2, Matrix, gap_penalty, match, mismatch)
 
+    #divide the first sequence into two halves
     mid = len(seq1)//2
 
+    #compute the score of aligning the first half of seq1 with all of seq2 and the second half of seq1 with all of seq2 in reverse
     scoreL = nw_score(seq1[:mid], seq2, gap_penalty=gap_penalty, Matrix=Matrix, match=match, mismatch=mismatch)
     scoreR = nw_score(seq1[mid:][::-1], seq2[::-1], gap_penalty=gap_penalty, Matrix=Matrix, match=match, mismatch=mismatch)
 
+    # Find the optimal split point
     m = len(seq2)
     split = max(range(m+1), key=lambda j: scoreL[j] + scoreR[m-j])
 
+    # Recursively align the two halves of seq1 with the corresponding halves of seq2
     left1, left2 = hirschberg(seq1[:mid], seq2[:split], Matrix, gap_penalty, match, mismatch)
     right1, right2 = hirschberg(seq1[mid:], seq2[split:], Matrix, gap_penalty, match, mismatch)
 
     return left1 + right1, left2 + right2
 
 def needleman_wunsch(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=-1):
+
+    # Initialize the scoring values and the dimensions of the DP table
     gap = gap_penalty
     n, m = len(seq1), len(seq2)
-
     dp = [[0]*(m+1) for _ in range(n+1)]
 
+    # Initialize the first row and column of the DP table with gap penalties
     for i in range(n+1):
         dp[i][0] = i * gap
     for j in range(m+1):
         dp[0][j] = j * gap
 
+    # Fill the DP table using the scoring scheme and the values from the substitution matrix
     for i in range(1, n+1):
         for j in range(1, m+1):
             s = score(seq1[i-1], seq2[j-1], Matrix, match, mismatch)
@@ -208,9 +219,11 @@ def needleman_wunsch(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=
 
             dp[i][j] = max(match_score, delete, insert)
 
+    # Backtrack through the DP table to construct the optimal alignment
     i, j = n, m
     a1, a2 = "", ""
 
+    # Backtrack through the DP table to construct the optimal alignment
     while i > 0 or j > 0:
         if i > 0 and j > 0 and dp[i][j] == dp[i-1][j-1] + score(seq1[i-1], seq2[j-1], Matrix, match, mismatch):
             a1 += seq1[i-1]
@@ -229,6 +242,7 @@ def needleman_wunsch(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=
     return a1[::-1], a2[::-1]
 
 def read_matrix(filename):
+    # Reads a substitution matrix from a file and returns it as a dictionary of dictionaries.
     try:
         with open(filename) as f:
             line = f.readline()
@@ -246,6 +260,7 @@ def read_matrix(filename):
     headers = lines[0]
     Matrix = {}
 
+    # Validate characters in the matrix against the expected character sets for the specified sequence type
     for row in lines[1:]:
         char = row[0]
         if sys.argv[2].upper() == 'AA' and char not in PROTEIN_CHARS:
@@ -260,8 +275,11 @@ def read_matrix(filename):
     return Matrix
 
 def global_alignment(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=-1):
+
+    # Use Hirschberg's algorithm to compute the optimal global alignment of seq1 and seq2
     align1, align2 = hirschberg(seq1, seq2, Matrix, gap_penalty, match, mismatch)
 
+    # Calculate the total score of the alignment by summing the scores of each aligned pair of characters, using the provided scoring scheme and substitution matrix if available
     total_score = sum(
         score(a, b, Matrix, match, mismatch)
         if a != "-" and b != "-" else gap_penalty
