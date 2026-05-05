@@ -77,17 +77,18 @@ def fastaread_test():
 from align import check_command_line
 
 def test_check_command_line_valid():
-    args=['python3','test_files/DNA.Fasta', 'DNA', 'no']
+    args=['python3','test_files/DNA.Fasta', 'DNA','global', 'no']
 
-    filename, type_seq, customs, settings = check_command_line(args)
-
+    filename, type_seq, customs, settings, alignment_type = check_command_line(args)
     assert filename == 'test_files/DNA.Fasta'
     assert type_seq == 'DNA'
     assert customs == 'no'
     assert settings == None
+    assert alignment_type == 'global'
+
 
 def test_check_command_line_invalid():
-    args=['python3','test_files/DNA.Fasta', 'no']
+    args=['python3','test_files/DNA.Fasta','global', 'no']
 
     with pytest.raises(SystemExit):
         check_command_line(args)
@@ -105,7 +106,7 @@ T -1 -1 -1 2
 """
     )
 
-    monkeypatch.setattr(sys, "argv", ["align.py", "DNA.fasta", "DNA", "yes"])
+    monkeypatch.setattr(sys, "argv", ["align.py", "DNA.fasta", "DNA",'global', "yes"])
 
 
 
@@ -119,6 +120,69 @@ T -1 -1 -1 2
     }
 
     assert result == expected
+
+
+from align import smith_waterman
+
+def test_smith_waterman_simple():
+    max_score, align1, align2 = smith_waterman(
+        "AAAA",
+        "AAAT",
+        Matrix=None,
+        gap_penalty=-1,
+        match=1,
+        mismatch=-1
+    )
+
+    assert len(align1) == len(align2)
+    assert align1.replace("-", "") in "AAAA"
+    assert align2.replace("-", "") in "AAAT"
+    assert max_score == 3
+
+def test_smith_waterman_no_match():
+    max_score, align1, align2 = smith_waterman(
+        "AAAA",
+        "TTTT",
+        Matrix=None,
+        gap_penalty=-1,
+        match=1,
+        mismatch=-1
+    )
+
+    assert align1 == ""
+    assert align2 == ""
+    assert max_score == 0
+
+from align import local_alignment
+
+def test_local_alignment_simple():
+    max_score, align1, align2 = local_alignment(
+        "AAAA",
+        "AAAT",
+        Matrix=None,
+        gap_penalty=-1,
+        match=1,
+        mismatch=-1
+    )
+
+    assert len(align1) == len(align2)
+    assert align1.replace("-", "") in "AAAA"
+    assert align2.replace("-", "") in "AAAT"
+    assert max_score == 3
+
+def test_local_alignment_no_match():
+    max_score, align1, align2 = local_alignment(
+        "AAAA",
+        "TTTT",
+        Matrix=None,
+        gap_penalty=-1,
+        match=1,
+        mismatch=-1
+    )
+
+    assert align1 == ""
+    assert align2 == ""
+    assert max_score == 0
 
 
 
