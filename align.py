@@ -70,6 +70,7 @@ def customize(type_seq):
         except ValueError:
             usage("The values provided must be integers.")
 
+        #Returning values as a dict
         return {
             "match": match,
             "mismatch": mismatch,
@@ -89,6 +90,7 @@ def customize(type_seq):
         if filename_matrix == "":
             usage("You must provide a filename for the substitution matrix.")
 
+        #Returning values as a dict
         return {
             "match": None,
             "mismatch": None,
@@ -108,10 +110,10 @@ def fastaread(filename):
     with open(filename, "r") as infile:
         for line in infile:
             if line.startswith('>'):
-                headers.append(line.rstrip())
+                headers.append(line.strip())
                 sequences.append('')
             elif len(sequences) == 0:
-                continue        # ignore leading non header in file
+                continue        # ignore leading non header in the file
             else:
                 sequences[-1] += ''.join(line.split())
             if len(headers) > 2:
@@ -120,22 +122,28 @@ def fastaread(filename):
     return headers, sequences
 
 #Runtime O(1) for lookup and O(n) for checking caractors
-def sequence_type(sequence:str):
-    """This function tjeks if the sequence is DNA, RNA og aminoacid sequence"""
+def sequence_tjek(sequence1, sequence2, type_seq):
+    """Checks if both sequences match the sequence type given by the user."""
+    type_seq = type_seq.upper()
 
-    if set(sequence).issubset(DNA_CHARS):
-        return "DNA"
-    elif set(sequence).issubset(RNA_CHARS):
-        return "RNA"
-    elif set(sequence).issubset(PROTEIN_CHARS):
-        return "AA"
-    
-    #Giving the reason why the sequence does not pass
+    if type_seq == "DNA":
+        allowed_chars = DNA_CHARS
+    elif type_seq == "RNA":
+        allowed_chars = RNA_CHARS
+    elif type_seq == "AA":
+        allowed_chars = PROTEIN_CHARS
     else:
+        usage("Sequence type must be DNA, RNA, or AA.")
+
+    for seq_number, sequence in enumerate([sequence1, sequence2], start=1):
+        if set(sequence).issubset(allowed_chars):
+            continue
+
         for i, char in enumerate(sequence):
-            if char not in DNA_CHARS and char not in RNA_CHARS and char not in PROTEIN_CHARS:
-                usage(f"Invalid character '{char}' at position {i}")
-        usage("The sequence provided is not DNA, RNA or amino acid.")
+            if char not in allowed_chars:
+                usage(f"Invalid character '{char}' at position {i} in sequence {seq_number} for type {type_seq}.")
+
+    return True
 
 #Runtime O(1)
 def score(a, b, Matrix=None, match=1, mismatch=-1):
@@ -417,8 +425,7 @@ def runner():
     if len(sequences) != 2 or len(headers) != 2:
         usage("The file contains more than two headers and/or sequences")
 
-    if sequence_type(sequences[0]) != sequence_type(sequences[1]):
-        usage("The two sequences are not the same type")
+    sequence_tjek(sequences[0], sequences[1], type_seq)
 
     if alignment_type == "global":
         total_score, align1, align2 = global_alignment(
