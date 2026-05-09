@@ -2,14 +2,14 @@
 import sys
 
 #Defining all IUPAC letters for the diffrent sequence types
-DNA_CHARS = set("ANCGTRYSWKMBDHV")
-RNA_CHARS = set("ANCGURYSWKMBDHV")
-PROTEIN_CHARS = set("ACDEFGHIKLMNPQRSTVWYBXZJUO*")
+DNA_CHARS = set("ACGTRWSWKMBDHVN")
+RNA_CHARS = set("ACGURWSWKMBDHVN")
+PROTEIN_CHARS = set("ACDEFGHIKLMNPQRSTVWY")
 ALLOWED_FASTA_SUFFIXES = (".fasta", ".fa", ".fna", ".fsa", ".fas")
 
 def usage(error_message):
     """Printing the error in the code and ending the script"""
-    print("Fejl:", error_message, file=sys.stderr)
+    print("Fejl:", error_message)
     print("Input should looke like: python3 align.py <fastafil> <type> <local/global> <customize yes or no>", file=sys.stderr)
     sys.exit(1)
 
@@ -20,10 +20,9 @@ def check_command_line(argv):
     if len(argv) != 5:
         usage("Input length is not correct")
 
-    filename = argv[1]
-    lower_name = filename.lower()
+    filename = argv[1].lower()
 
-    if not lower_name.endswith(ALLOWED_FASTA_SUFFIXES):
+    if not filename.endswith(ALLOWED_FASTA_SUFFIXES):
         usage("Input file must be a FASTA file (.fasta, .fa, .fna, .fsa, .fas).")
 
     # Getting the sequence type
@@ -55,38 +54,22 @@ def customize(type_seq):
 
     if type_seq in ("RNA", "DNA"):
 
-        disition = input("Do you want to submit a substituion matrix or values, type yes for matrix and no for values: ")
-
-        if disition.upper() == "NO":
-            print("You must now provide the input for the 3 values. They must be integers.")
-            try:                    
-                match = int(input("match (mus be >0): "))
-                if match <= 0:
-                    usage("match must be above 0")
-                mismatch = int(input("mismatch: "))
-                gap_penalty = int(input("gap penalty: "))
-                filename_matrix = None
-            except ValueError:
-                usage("The values provided must be integers.")
-            
-        elif disition.upper() == "YES":
-            try:
-                print("You must now provide the input for the 2 values. gap_penalty must be int and filename_matrix must be a substitutionmatrix file")
-                match = None                    
-                mismatch = None
-                gap_penalty = int(input("gap penalty: "))
-                filename_matrix = input("substituion matrix: ")
-            except ValueError:
-                usage("The values provided must be integers.")
-
-        else:
-            usage("You must provide yes or no to the desision")
+        #Checking if 
+        print("You must now provide the input for the 3 values. They must be integers.")
+        try:                    
+            match = int(input("match (mus be >0): "))
+            if match <= 0:
+                usage("match must be above 0")
+            mismatch = int(input("mismatch: "))
+            gap_penalty = int(input("gap penalty: "))
+            filename_matrix = None
+        except ValueError:
+            usage("The values provided must be integers.")
 
         return {
             "match": match,
             "mismatch": mismatch,
             "gap_penalty": gap_penalty,
-            "filename_matrix": filename_matrix
         }
 
     elif type_seq == "AA":
@@ -409,9 +392,6 @@ def runner():
             match = settings["match"]
             mismatch = settings["mismatch"]
             gap_penalty = settings["gap_penalty"]
-            file_name_matrix = settings["filename_matrix"]
-            if file_name_matrix is not None:
-                matrix = read_matrix(file_name_matrix)
         
     if customs == "no" and type_seq == "AA":
         matrix = read_matrix("blosum62.txt")
