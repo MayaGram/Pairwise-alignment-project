@@ -125,7 +125,8 @@ def fastaread(filename):
 def sequence_tjek(sequence1, sequence2, type_seq):
     """Checks if both sequences match the sequence type given by the user."""
     type_seq = type_seq.upper()
-
+    
+    #Defining allowed characters. "They are defined in the top"
     if type_seq == "DNA":
         allowed_chars = DNA_CHARS
     elif type_seq == "RNA":
@@ -135,13 +136,16 @@ def sequence_tjek(sequence1, sequence2, type_seq):
     else:
         usage("Sequence type must be DNA, RNA, or AA.")
 
-    for seq_number, sequence in enumerate([sequence1, sequence2], start=1):
-        if set(sequence).issubset(allowed_chars):
-            continue
-
-        for i, char in enumerate(sequence):
+    #We check if the caractors are allowed and if they are not we find the first "problem maker"
+    if not set(sequence1).issubset(allowed_chars):
+        for i, char in enumerate(sequence1):
             if char not in allowed_chars:
-                usage(f"Invalid character '{char}' at position {i} in sequence {seq_number} for type {type_seq}.")
+                usage(f"Invalid character '{char}' at position {i} in sequence 1 for type {type_seq}.")
+
+    if not set(sequence2).issubset(allowed_chars):
+        for i, char in enumerate(sequence2):
+            if char not in allowed_chars:
+                usage(f"Invalid character '{char}' at position {i} in sequence 2 for type {type_seq}.")
 
     return True
 
