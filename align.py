@@ -7,12 +7,15 @@ RNA_CHARS = set("ACGURWSWKMBDHVN")
 PROTEIN_CHARS = set("ACDEFGHIKLMNPQRSTVWY")
 ALLOWED_FASTA_SUFFIXES = (".fasta", ".fa", ".fna", ".fsa", ".fas")
 
+#Runtime O(1)
 def usage(error_message):
     """Printing the error in the code and ending the script"""
+    #Dicrecting the user to how they are supposed to use the code
     print("Fejl:", error_message)
     print("Input should looke like: python3 align.py <fastafil> <type> <local/global> <customize yes or no>", file=sys.stderr)
     sys.exit(1)
 
+#Runtime O(1) only if and else statements
 def check_command_line(argv):
     """Check that the command line input is correct."""
 
@@ -49,12 +52,13 @@ def check_command_line(argv):
 
     return filename, type_seq, customs, settings, alignment_type
 
+#Runtime O(1)
 def customize(type_seq):
     type_seq = type_seq.upper()
 
     if type_seq in ("RNA", "DNA"):
 
-        #Checking if 
+        #Getting values for alignment
         print("You must now provide the input for the 3 values. They must be integers.")
         try:                    
             match = int(input("match (mus be >0): "))
@@ -73,6 +77,8 @@ def customize(type_seq):
         }
 
     elif type_seq == "AA":
+
+        #Getting gap_penalty and matrix from the user
         print("You must now provide the 1 integer value and a filename for a substitution matrix.")
         try:
             gap_penalty = int(input("gap penalty: "))
@@ -93,7 +99,7 @@ def customize(type_seq):
     else:
         usage("Sequence type must be DNA, RNA, or AA.")
 
-
+#Runtime O(n) grows lineary for every line in the file
 def fastaread(filename):
     """Reads a fasta file by given filename and returns a list with headers and a list with sequences"""
     headers = []
@@ -113,6 +119,7 @@ def fastaread(filename):
 
     return headers, sequences
 
+#Runtime O(1) for lookup and O(n) for checking caractors
 def sequence_type(sequence:str):
     """This function tjeks if the sequence is DNA, RNA og aminoacid sequence"""
 
@@ -130,12 +137,13 @@ def sequence_type(sequence:str):
                 usage(f"Invalid character '{char}' at position {i}")
         usage("The sequence provided is not DNA, RNA or amino acid.")
 
+#Runtime O(1)
 def score(a, b, Matrix=None, match=1, mismatch=-1):
     if Matrix:
         return Matrix[a][b]
     return match if a == b else mismatch
 
-
+#Runtime O(n*m)
 def nw_score(seq1, seq2, gap_penalty=-1, Matrix=None, match=1, mismatch=-1):
     prev = [j * gap_penalty for j in range(len(seq2)+1)] # Initialize the first row of the DP table
 
@@ -155,6 +163,7 @@ def nw_score(seq1, seq2, gap_penalty=-1, Matrix=None, match=1, mismatch=-1):
 
     return prev
 
+#Runtime O(n*m)
 def hirschberg(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=-1):
 
     #base cases - if one of the sequences is empty, return the other sequence with gaps
@@ -185,6 +194,7 @@ def hirschberg(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=-1):
 
     return left1 + right1, left2 + right2
 
+#Runtime O(n*m)
 def needleman_wunsch(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=-1):
 
     # Initialize the scoring values and the dimensions of the DP table
@@ -231,6 +241,7 @@ def needleman_wunsch(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=
 
     return a1[::-1], a2[::-1]
 
+#Runtime O(n^2)
 def read_matrix(filename):
     # Reads a substitution matrix from a file and returns it as a dictionary of dictionaries.
     try:
@@ -264,6 +275,7 @@ def read_matrix(filename):
 
     return Matrix
 
+#Runtime O(n*m)
 def global_alignment(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=-1):
 
     # Use Hirschberg's algorithm to compute the optimal global alignment of seq1 and seq2
@@ -277,6 +289,7 @@ def global_alignment(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=
 
     return total_score, align1, align2
 
+#Runime O(n*m)
 def smith_waterman(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=-1):
     gap = gap_penalty
     M, N = len(seq1), len(seq2)
@@ -339,11 +352,13 @@ def smith_waterman(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=-1
 
     return max_score, a1[::-1], a2[::-1]
 
+#Runtime O(n*m)
 def local_alignment(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=-1):
     # Use Smith-Waterman to compute the best local alignment of seq1 and seq2
     total_score, align1, align2 = smith_waterman(seq1, seq2, Matrix, gap_penalty, match, mismatch)
     return total_score, align1, align2
 
+#Runtime O(n)
 def alignment_printer(aligned):
     seq1 = aligned[0]
     seq2 = aligned[1]
@@ -371,6 +386,7 @@ def alignment_printer(aligned):
 
     return None
 
+#Runtime O(n*m)
 def runner():
     if len(sys.argv) != 5:
         usage("Wrong input length")
