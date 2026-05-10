@@ -5,7 +5,7 @@ import sys
 DNA_CHARS = set("ACGTRWSWKMBDHVN")
 RNA_CHARS = set("ACGURWSWKMBDHVN")
 PROTEIN_CHARS = set("ACDEFGHIKLMNPQRSTVWY")
-ALLOWED_FASTA_SUFFIXES = (".fasta", ".fa", ".fna", ".fsa", ".fas")
+ALLOWED_FASTA_SUFFIXES = (".fasta", ".fas", ".fa", ".fna", ".ffn", ".faa", ".mpfa", ".frn")
 
 #Runtime O(1)
 def usage(error_message):
@@ -26,7 +26,7 @@ def check_command_line(argv):
     filename = argv[1].lower()
 
     if not filename.endswith(ALLOWED_FASTA_SUFFIXES):
-        usage("Input file must be a FASTA file (.fasta, .fa, .fna, .fsa, .fas).")
+        usage("Input file must be a FASTA file (.fasta, .fas, .fa, .fna, .ffn, .faa, .mpfa, .frn).")
 
     # Getting the sequence type
     type_seq = argv[2].upper()
@@ -64,9 +64,11 @@ def customize(type_seq):
             match = int(input("match (mus be >0): "))
             if match <= 0:
                 usage("match must be above 0")
+
             mismatch = int(input("mismatch: "))
             gap_penalty = int(input("gap penalty: "))
             filename_matrix = None
+
         except ValueError:
             usage("The values provided must be integers.")
 
@@ -116,7 +118,7 @@ def fastaread(filename):
                 continue        # ignore leading non header in the file
             else:
                 sequences[-1] += ''.join(line.split())
-            if len(headers) > 2:
+            if len(headers) > 2:        #Stopping the code if there are more than two seuqences
                 usage("The amount of sequences are greater than 2")
 
     return headers, sequences
@@ -142,6 +144,7 @@ def sequence_tjek(sequence1, sequence2, type_seq):
             if char not in allowed_chars:
                 usage(f"Invalid character '{char}' at position {i} in sequence 1 for type {type_seq}.")
 
+    #same for sequences two
     if not set(sequence2).issubset(allowed_chars):
         for i, char in enumerate(sequence2):
             if char not in allowed_chars:
@@ -303,20 +306,27 @@ def global_alignment(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=
 
 #Runime O(n*m)
 def smith_waterman(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=-1):
+
+    #Getting the variables
     gap = gap_penalty
     M, N = len(seq1), len(seq2)
 
-    #Here my alignment matrix is getting scores and path matrix is for keeping track of the scores
+    #Here my alignment matrix is getting scores and path matrix is for keeping track of the direction
+    #Starting out with zero in every position (M+1 and N+1 because we need a starting square)
     alignment_matrix = [[0] * (N + 1) for i in range(M + 1)]
+    #The path matrix is used for traceback
     path_matrix = [[0] * (N + 1) for i in range(M + 1)]
 
+    #We start at position 0 and max score at 0 this can never be below 0. 
     max_score = 0
+    #Max position keeps track of the postion with the max score
     max_position = (0, 0)
 
+    #Filling out the matrix (plus one to get a starting square)
     for i in range(1, M + 1):
         for j in range(1, N + 1):
 
-            #Species keep track of the nukleotides in the position
+            #Species keep track of the nukleotides in the position from the two sequences
             species1 = seq1[i - 1]
             species2 = seq2[j - 1]
 
@@ -329,6 +339,7 @@ def smith_waterman(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=-1
             current_score = max(0, diag_score, down_score, left_score)
             alignment_matrix[i][j] = current_score
 
+            #Traceback directions and criteria
             if current_score == 0:
                 path_matrix[i][j] = -1
             elif current_score == diag_score:
@@ -338,6 +349,7 @@ def smith_waterman(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=-1
             else:
                 path_matrix[i][j] = 2
 
+            #updating max score
             if current_score > max_score:
                 max_score = current_score
                 max_position = (i, j)
@@ -345,18 +357,21 @@ def smith_waterman(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=-1
     i, j = max_position
     a1, a2 = "", ""
 
+    #Computing traceback
     while i > 0 and j > 0 and path_matrix[i][j] != -1:
-        if path_matrix[i][j] == 0:
+        if path_matrix[i][j] == 0:          #prioritizing diagonal movement
             a1 += seq1[i - 1]
             a2 += seq2[j - 1]
             i -= 1
             j -= 1
 
+        #If this is true then gap in seq2
         elif path_matrix[i][j] == 1:
             a1 += seq1[i - 1]
             a2 += "-"
             i -= 1
 
+        #If this is true then gap in seq1
         else:
             a1 += "-"
             a2 += seq2[j - 1]
@@ -372,10 +387,13 @@ def local_alignment(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=-
 
 #Runtime O(n)
 def alignment_printer(aligned):
+    """The alignment printer prints the alignment 60 chars at a time"""
+    #Getting sequences in
     seq1 = aligned[0]
     seq2 = aligned[1]
     block_size = 60
 
+    #Going through the sequence 60 chars at a time
     for start in range(0, len(seq1), block_size):
         end = start + block_size
         part1 = seq1[start:end]
@@ -383,6 +401,7 @@ def alignment_printer(aligned):
 
         print(f"{part1}\t{start}-{len(part1)+start}")
 
+        #The connecting string prints (| for match, : for mismatch and - for gap )
         Connecting_string = ""
         for i, char in enumerate(part1):
             if char == part2[i]:
@@ -400,15 +419,20 @@ def alignment_printer(aligned):
 
 #Runtime O(n*m)
 def runner():
+    """The runner is the function that ties all the other functions together"""
+
+    #Checking terminal input
     if len(sys.argv) != 5:
         usage("Wrong input length")
 
+    #Getting the input data
     filename, type_seq, customs, settings, alignment_type = check_command_line(sys.argv)
     matrix = None
     gap_penalty = -1
     match = 1
     mismatch = -1
 
+    #Checking customize and getting customizations
     if customs == "yes":
 
         if type_seq == "AA":
@@ -420,17 +444,20 @@ def runner():
             match = settings["match"]
             mismatch = settings["mismatch"]
             gap_penalty = settings["gap_penalty"]
-        
+
+    #Default senarios   
     if customs == "no" and type_seq == "AA":
         matrix = read_matrix("blosum62.txt")
 
     headers, sequences = fastaread(filename)
 
+    #Dobbel checking that there is not more than two sequences (Also done in fasta read)
     if len(sequences) != 2 or len(headers) != 2:
         usage("The file contains more than two headers and/or sequences")
 
     sequence_tjek(sequences[0], sequences[1], type_seq)
 
+    #Global alignment
     if alignment_type == "global":
         total_score, align1, align2 = global_alignment(
             sequences[0],
@@ -440,6 +467,7 @@ def runner():
             match,
             mismatch,
         )
+    #Local alignment
     elif alignment_type == "local":
         total_score, align1, align2 = local_alignment(
             sequences[0],
@@ -450,6 +478,7 @@ def runner():
             mismatch,
         )
 
+    #Printing the result
     print("=" * 60)
     print(f"Result for pairwise alignment of {filename}")
     print(f"The type of sequences alignt was {type_seq}")
@@ -462,5 +491,7 @@ def runner():
     print("Alignment:")
     alignment_printer([align1, align2])
 
+#This part is for unit testing
+#It only runs if the code is called from the terminal
 if __name__ == "__main__":
     runner()
