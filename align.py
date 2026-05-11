@@ -4,7 +4,7 @@ import sys
 #Defining all IUPAC letters for the diffrent sequence types
 DNA_CHARS = set("ACGTRWSYKMBDHVN")
 RNA_CHARS = set("ACGURWSYKMBDHVN")
-PROTEIN_CHARS = set("ACDEFGHIKLMNPQRSTVWY")
+PROTEIN_CHARS = set("ACDEFGHIKLMNPQRSTVWYBXZJUO*")
 ALLOWED_FASTA_SUFFIXES = (".fasta", ".fas", ".fa", ".fna", ".ffn", ".faa", ".mpfa", ".frn")
 
 #Runtime O(1)
