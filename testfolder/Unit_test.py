@@ -1,24 +1,29 @@
-
-
 import pytest
 import sys
-from align import sequence_type
+from align import sequence_tjek
 
 
-#test for sequence type function
-def test_sequence_type_dna():
-    assert sequence_type("ACGT") == "DNA"
+#test for sequence_tjek function
+def test_sequence_tjek_dna():
+    assert sequence_tjek("ACGT", "TGCA", "DNA") == True
 
-def test_sequence_type_rna():
-    assert sequence_type("ACGU") == "RNA"
 
-def test_sequence_type_protein():
-    assert sequence_type("ACDEFGHIK") == "AA"
+def test_sequence_tjek_rna():
+    assert sequence_tjek("ACGU", "UGCA", "RNA") == True
+
+
+def test_sequence_tjek_protein():
+    assert sequence_tjek("ACDEFGHIK", "LMNPQRSTV", "AA") == True
+
+#invalid character in sequence 1
+def test_sequence_tjek_invalid_character():
+    with pytest.raises(SystemExit):
+        sequence_tjek("ACGT@", "ACGT", "DNA")
 
 #invalid sequence type
-def test_sequence_type_invalid():
+def test_sequence_tjek_invalid_type():
     with pytest.raises(SystemExit):
-        sequence_type("ACGT@")
+        sequence_tjek("ACGT", "ACGT", "BADTYPE")
 
 
 from align import score
@@ -78,9 +83,7 @@ def test_global_alignment_score():
 from align import fastaread
 
 #test for fastaread function with an invalid file (3 files in one txtx file")
-def fastaread_test():
-    header, seq = fastaread('test_filer/3filer.fasta')
-
+def test_fastaread_invalid():
     with pytest.raises(SystemExit):
         fastaread('test_filer/3filer.fasta')
 
@@ -91,7 +94,7 @@ def test_check_command_line_valid():
     args=['python3','test_files/DNA.Fasta', 'DNA','global', 'no']
 
     filename, type_seq, customs, settings, alignment_type = check_command_line(args)
-    assert filename == 'test_files/DNA.Fasta'
+    assert filename == 'test_files/dna.fasta'
     assert type_seq == 'DNA'
     assert customs == 'no'
     assert settings == None
@@ -138,7 +141,7 @@ from align import smith_waterman
 
 #test for smith_waterman function with a simple case
 def test_smith_waterman_simple():
-    max_score, align1, align2 = smith_waterman(
+    max_score, align1, align2, start_position, last_position = smith_waterman(
         "AAAA",
         "AAAT",
         Matrix=None,
@@ -154,7 +157,7 @@ def test_smith_waterman_simple():
 
 #test for smith_waterman function with no match
 def test_smith_waterman_no_match():
-    max_score, align1, align2 = smith_waterman(
+    max_score, align1, align2, start_position, last_position = smith_waterman(
         "AAAA",
         "TTTT",
         Matrix=None,
@@ -171,7 +174,7 @@ from align import local_alignment
 
 #test for local_alignment function with a simple case
 def test_local_alignment_simple():
-    max_score, align1, align2 = local_alignment(
+    max_score, align1, align2, start_position, last_position = local_alignment(
         "AAAA",
         "AAAT",
         Matrix=None,
@@ -187,7 +190,7 @@ def test_local_alignment_simple():
 
 #test for local_alignment function with no match
 def test_local_alignment_no_match():
-    max_score, align1, align2 = local_alignment(
+    max_score, align1, align2, start_position, last_position = local_alignment(
         "AAAA",
         "TTTT",
         Matrix=None,
