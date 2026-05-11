@@ -306,7 +306,7 @@ def global_alignment(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=
 
 #Runime O(n*m)
 def smith_waterman(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=-1):
-
+    """Computes the best local alignment using the smith waterman algorythem"""
     #Getting the variables
     gap = gap_penalty
     M, N = len(seq1), len(seq2)
@@ -355,6 +355,7 @@ def smith_waterman(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=-1
                 max_position = (i, j)
 
     i, j = max_position
+    last_position = max_position
     a1, a2 = "", ""
 
     #Computing traceback
@@ -377,21 +378,32 @@ def smith_waterman(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=-1
             a2 += seq2[j - 1]
             j -= 1
 
-    return max_score, a1[::-1], a2[::-1]
+    start_position = (i, j)
+    return max_score, a1[::-1], a2[::-1], start_position, last_position
 
 #Runtime O(n*m)
 def local_alignment(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=-1):
+    """The function parses the smith waterman function. 
+    Is here for consistency between local and global alignment"""
     # Use Smith-Waterman to compute the best local alignment of seq1 and seq2
-    total_score, align1, align2 = smith_waterman(seq1, seq2, Matrix, gap_penalty, match, mismatch)
-    return total_score, align1, align2
+    total_score, align1, align2, start_position, last_position = smith_waterman(seq1, seq2, Matrix, gap_penalty, match, mismatch)
+    return total_score, align1, align2, start_position, last_position
 
 #Runtime O(n)
-def alignment_printer(aligned):
+def alignment_printer(aligned, positions):
     """The alignment printer prints the alignment 60 chars at a time"""
     #Getting sequences in
     seq1 = aligned[0]
     seq2 = aligned[1]
     block_size = 60
+    local = False
+
+
+    #Finds out if the alignment is local
+    if positions[0] is not None and positions[1] is not None:
+        top_seq = f"{positions[0][0]} - {positions[1][0]}"
+        buttom_seq = f"{positions[0][1]} - {positions[1][1]}"
+        local = True
 
     #Going through the sequence 60 chars at a time
     for start in range(0, len(seq1), block_size):
@@ -399,7 +411,11 @@ def alignment_printer(aligned):
         part1 = seq1[start:end]
         part2 = seq2[start:end]
 
-        print(f"{part1}\t{start}-{len(part1)+start}")
+        #prints local positions if local and start end if it is global
+        if local:
+            print(f"{part1}\t{top_seq}")
+        else:
+            print(f"{part1}\t{start}-{len(part1)+start}")
 
         #The connecting string prints (| for match, : for mismatch and - for gap )
         Connecting_string = ""
@@ -412,7 +428,12 @@ def alignment_printer(aligned):
                 Connecting_string += ":"
 
         print(Connecting_string + "\t")
-        print(part2 + "\t")
+
+        #Again here we print local or global
+        if local:
+            print(part2 + "\t" + buttom_seq)
+        else:
+            print(part2 + "\t")
         print()
 
     return None
@@ -431,6 +452,10 @@ def runner():
     gap_penalty = -1
     match = 1
     mismatch = -1
+
+    #Local alignment variables
+    start_position = None
+    last_position = None
 
     #Checking customize and getting customizations
     if customs == "yes":
@@ -469,7 +494,7 @@ def runner():
         )
     #Local alignment
     elif alignment_type == "local":
-        total_score, align1, align2 = local_alignment(
+        total_score, align1, align2, start_position, last_position = local_alignment(
             sequences[0],
             sequences[1],
             matrix,
@@ -488,8 +513,10 @@ def runner():
     print(f"Sequence 2:{headers[1]}")
     print("=" * 60)
     print(f"The totalt alignment score was: {total_score}")
+    if alignment_type == "local":
+        print(f"Local alignment starts at position {start_position} and ends at position {last_position}")
     print("Alignment:")
-    alignment_printer([align1, align2])
+    alignment_printer([align1, align2], [start_position, last_position])
 
 #This part is for unit testing
 #It only runs if the code is called from the terminal
