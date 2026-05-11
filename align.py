@@ -2,8 +2,8 @@
 import sys
 
 #Defining all IUPAC letters for the diffrent sequence types
-DNA_CHARS = set("ACGTRWSWKMBDHVN")
-RNA_CHARS = set("ACGURWSWKMBDHVN")
+DNA_CHARS = set("ACGTRWSYKMBDHVN")
+RNA_CHARS = set("ACGURWSYKMBDHVN")
 PROTEIN_CHARS = set("ACDEFGHIKLMNPQRSTVWY")
 ALLOWED_FASTA_SUFFIXES = (".fasta", ".fas", ".fa", ".fna", ".ffn", ".faa", ".mpfa", ".frn")
 
@@ -120,6 +120,10 @@ def fastaread(filename):
                 sequences[-1] += ''.join(line.split())
             if len(headers) > 2:        #Stopping the code if there are more than two seuqences
                 usage("The amount of sequences are greater than 2")
+    
+    #Tjecs if sequences are empty
+    if len(sequences[0]) == 0 or len(sequences[1]) == 0:
+        usage("You need two sequences for alignment. A sequence can't be empty")
 
     return headers, sequences
 
@@ -391,19 +395,24 @@ def local_alignment(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=-
 
 #Runtime O(n)
 def alignment_printer(aligned, positions):
-    """The alignment printer prints the alignment 60 chars at a time"""
+    """The alignment printer prints the alignment 60 chars at a time
+    It prints differently for local and global alignment"""
+    
     #Getting sequences in
     seq1 = aligned[0]
     seq2 = aligned[1]
     block_size = 60
-    local = False
 
+    #Options for local alignment
+    local = False
+    seq1_position = 0
+    seq2_position = 0
 
     #Finds out if the alignment is local
     if positions[0] is not None and positions[1] is not None:
-        top_seq = f"{positions[0][0]} - {positions[1][0]}"
-        buttom_seq = f"{positions[0][1]} - {positions[1][1]}"
         local = True
+        seq1_position = positions[0][0]
+        seq2_position = positions[0][1]
 
     #Going through the sequence 60 chars at a time
     for start in range(0, len(seq1), block_size):
@@ -413,7 +422,10 @@ def alignment_printer(aligned, positions):
 
         #prints local positions if local and start end if it is global
         if local:
-            print(f"{part1}\t{top_seq}")
+            seq1_start = seq1_position
+            seq1_position += len(part1.replace("-", "")) #Removing gaps to get the right position
+            seq1_end = seq1_position
+            print(f"{part1}\t{seq1_start} - {seq1_end}")
         else:
             print(f"{part1}\t{start}-{len(part1)+start}")
 
@@ -431,7 +443,10 @@ def alignment_printer(aligned, positions):
 
         #Again here we print local or global
         if local:
-            print(part2 + "\t" + buttom_seq)
+            seq2_start = seq2_position
+            seq2_position += len(part2.replace("-", "")) #Removing gaps to get the right position
+            seq2_end = seq2_position
+            print(f"{part2}\t{seq2_start} - {seq2_end}")
         else:
             print(part2 + "\t")
         print()
