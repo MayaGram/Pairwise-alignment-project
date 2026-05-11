@@ -158,12 +158,14 @@ def sequence_tjek(sequence1, sequence2, type_seq):
 
 #Runtime O(1)
 def score(a, b, Matrix=None, match=1, mismatch=-1):
+    '''Returns the score for aligning characters a and b based on the provided scoring scheme and substitution matrix if available.'''
     if Matrix:
         return Matrix[a][b]
     return match if a == b else mismatch
 
 #Runtime O(n*m)
 def nw_score(seq1, seq2, gap_penalty=-1, Matrix=None, match=1, mismatch=-1):
+    '''Computes the score of aligning seq1 and seq2 using the Needleman-Wunsch algorithm without backtracking. Returns the last row of the DP table.'''
     prev = [j * gap_penalty for j in range(len(seq2)+1)] # Initialize the first row of the DP table
 
     for i in range(1, len(seq1)+1): # Iterate through each character in seq1
@@ -184,6 +186,7 @@ def nw_score(seq1, seq2, gap_penalty=-1, Matrix=None, match=1, mismatch=-1):
 
 #Runtime O(n*m)
 def hirschberg(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=-1):
+    '''Computes the optimal global alignment of seq1 and seq2 using Hirschberg's algorithm. Returns the aligned sequences.'''
 
     #base cases - if one of the sequences is empty, return the other sequence with gaps
     if len(seq1) == 0:
@@ -215,6 +218,7 @@ def hirschberg(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=-1):
 
 #Runtime O(n*m)
 def needleman_wunsch(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=-1):
+    '''Computes the optimal global alignment of seq1 and seq2 using the Needleman-Wunsch algorithm. Returns the aligned sequences.'''
 
     # Initialize the scoring values and the dimensions of the DP table
     gap = gap_penalty
@@ -262,7 +266,7 @@ def needleman_wunsch(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=
 
 #Runtime O(n^2)
 def read_matrix(filename):
-    # Reads a substitution matrix from a file and returns it as a dictionary of dictionaries.
+    '''Reads a substitution matrix from a file and returns it as a dictionary of dictionaries.'''
     try:
         with open(filename) as f:
             line = f.readline()
@@ -296,6 +300,7 @@ def read_matrix(filename):
 
 #Runtime O(n*m)
 def global_alignment(seq1, seq2, Matrix=None, gap_penalty=-1, match=1, mismatch=-1):
+    '''Computes the optimal global alignment of seq1 and seq2 using Hirschberg's algorithm. Returns the total score and the aligned sequences.'''
 
     # Use Hirschberg's algorithm to compute the optimal global alignment of seq1 and seq2
     align1, align2 = hirschberg(seq1, seq2, Matrix, gap_penalty, match, mismatch)
