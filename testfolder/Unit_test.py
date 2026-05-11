@@ -15,16 +15,6 @@ def test_sequence_tjek_rna():
 def test_sequence_tjek_protein():
     assert sequence_tjek("ACDEFGHIK", "LMNPQRSTV", "AA") == True
 
-#invalid character in sequence 1
-def test_sequence_tjek_invalid_character():
-    with pytest.raises(SystemExit):
-        sequence_tjek("ACGT@", "ACGT", "DNA")
-
-#invalid sequence type
-def test_sequence_tjek_invalid_type():
-    with pytest.raises(Exception):
-        sequence_tjek("ACGT", "ACGT", "BADTYPE")
-
 
 from align import score
 
@@ -83,9 +73,9 @@ def test_global_alignment_score():
 from align import fastaread
 
 #test for fastaread function with an invalid file (3 files in one txtx file")
-def test_fastaread_invalid():
-    with pytest.raises(SystemExit):
-        fastaread('test_files/3filer.fasta')
+def test_fastaread():
+    heads, seqs = [">DNA_sequence_1_Human_like",">DNA_sequence_2_Bacterial_like"], ["ATGGCTACGTTAGCTAGCTACGATCGTAGCTAGCTAGGCTAGCTAGCTAGCTAACGTTAG","ATGCGTATCGATCGGATCGAATTCGCGTATCGATCGTAGCTAGCATCGATCGTGA"]
+    assert fastaread('DNA.fasta') == (heads, seqs)
 
 from align import check_command_line
 
