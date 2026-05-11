@@ -5,7 +5,7 @@ import sys
 DNA_CHARS = set("ACGTRWSYKMBDHVN")
 RNA_CHARS = set("ACGURWSYKMBDHVN")
 PROTEIN_CHARS = set("ACDEFGHIKLMNPQRSTVWYBXZJUO*")
-ALLOWED_FASTA_SUFFIXES = (".fasta", ".fas", ".fa", ".fna", ".ffn", ".faa", ".mpfa", ".frn")
+ALLOWED_FASTA_SUFFIXES = (".fasta", ".fas", ".fa", ".fna", ".ffn", ".faa", ".mpfa", ".frn", "fsa")
 
 #Runtime O(1)
 def usage(error_message):
@@ -121,6 +121,10 @@ def fastaread(filename):
             if len(headers) > 2:        #Stopping the code if there are more than two seuqences
                 usage("The amount of sequences are greater than 2")
     
+    #Tjecs if there are two sequences
+    if len(sequences) != 2:
+        usage("You need exactly two sequences for alignment.")
+
     #Tjecs if sequences are empty
     if len(sequences[0]) == 0 or len(sequences[1]) == 0:
         usage("You need two sequences for alignment. A sequence can't be empty")
