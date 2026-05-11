@@ -22,7 +22,7 @@ def test_sequence_tjek_invalid_character():
 
 #invalid sequence type
 def test_sequence_tjek_invalid_type():
-    with pytest.raises(SystemExit):
+    with pytest.raises(Exception):
         sequence_tjek("ACGT", "ACGT", "BADTYPE")
 
 
@@ -85,7 +85,7 @@ from align import fastaread
 #test for fastaread function with an invalid file (3 files in one txtx file")
 def test_fastaread_invalid():
     with pytest.raises(SystemExit):
-        fastaread('test_filer/3filer.fasta')
+        fastaread('test_files/3filer.fasta')
 
 from align import check_command_line
 
